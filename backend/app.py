@@ -9,8 +9,10 @@ from routes.courses import course_bp
 
 UPLOAD_FOLDER = "uploads/teachers"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "users")
 
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "courses")
 
 
 def create_app():
@@ -45,6 +47,10 @@ def create_app():
     @app.route("/uploads/teachers/<filename>")
     def uploaded_teacher_file(filename):
         return send_from_directory(TEACHERS_UPLOAD_FOLDER, filename)
+    
+    @app.route("/uploads/courses/<filename>")
+    def uploaded_course_file(filename):
+        return send_from_directory(UPLOAD_FOLDER, filename)
 
     return app
 

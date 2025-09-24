@@ -74,29 +74,17 @@ def get_course(course_id):
     return jsonify(course.to_dict()), 200
 
 
-# ----------------- Update Course -----------------
-@course_bp.route("/update/<int:course_id>", methods=["PUT"])
+# ✅ Update course
+@course_bp.route("/<int:course_id>", methods=["PUT"])
 def update_course(course_id):
     course = Course.query.get(course_id)
     if not course:
         return jsonify({"error": "Course not found"}), 404
 
-    data = request.form
+    data = request.form.to_dict()
     file = request.files.get("cover_photo")
 
-    if file and allowed_file(file.filename):
-        # Delete old file if exists
-        if course.cover_photo:
-            old_path = os.path.join(UPLOAD_FOLDER, course.cover_photo)
-            if os.path.exists(old_path):
-                os.remove(old_path)
-
-        # Save new file with UUID prefix
-        filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
-        course.cover_photo = filename
-
-    # Update fields safely
+    # Update fields
     course.course_name = data.get("course_name", course.course_name)
     course.course_duration = data.get("course_duration", course.course_duration)
     course.course_description = data.get("course_description", course.course_description)
@@ -105,12 +93,22 @@ def update_course(course_id):
     course.teacher_qualification = data.get("teacher_qualification", course.teacher_qualification)
     course.duration = data.get("duration", course.duration)
     course.payment = data.get("payment", course.payment)
-    course.full_price = safe_float(data.get("full_price"), course.full_price)
-    course.admission_fees = safe_float(data.get("admission_fees"), course.admission_fees)
+
+    if "full_price" in data:
+        course.full_price = float(data["full_price"]) if data["full_price"] else course.full_price
+    if "admission_fees" in data:
+        course.admission_fees = float(data["admission_fees"]) if data["admission_fees"] else course.admission_fees
+
+    # ✅ Handle cover photo
+    if file:
+        upload_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "uploads", "courses")
+        os.makedirs(upload_folder, exist_ok=True)
+        filepath = os.path.join(upload_folder, file.filename)
+        file.save(filepath)
+        course.cover_photo = file.filename
 
     db.session.commit()
-    return jsonify({"message": "Course updated successfully!"}), 200
-
+    return jsonify({"message": "Course updated successfully", "course": course.to_dict()}), 200
 
 # ----------------- Delete Course -----------------
 @course_bp.route("/delete/<int:course_id>", methods=["DELETE"])
